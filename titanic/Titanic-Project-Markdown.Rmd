@@ -13,13 +13,13 @@ knitr::opts_chunk$set(echo = TRUE)
 # Data cleaning  
 
 
-## Read in data
+Reading in data:
 
 ```{r}
 
 rm(list=ls())
 
-dir <- "/Users/Jeylan/Documents/Titanic-Project/"
+dir <- "/Users/Jeylan/Documents/Titanic-Project/titanic/"
 setwd(dir)
 
 test <- read.csv("test.csv", header=T, as.is=F, na.strings=c("","NA"))
@@ -27,8 +27,7 @@ train <- read.csv("train.csv", header=T, as.is=F, na.strings=c("","NA"))
 
 ```
 
-
-## Import libraries
+Imported libraries.
 
 
 ```{r library, include=FALSE}
@@ -48,7 +47,7 @@ library(tinytex)
 
 ```
 
-## Explore missings  
+Now I explore missings.
 
 ```{r}
 
@@ -64,11 +63,6 @@ lapply(full, function(x) length(unique(x)))
 
 summary(full)
 
-###	Look at the first six rows or first few rows
-head(full) 
-head(full, 2) 
-
-
 
 ##Looking at missings 
 
@@ -76,16 +70,14 @@ sapply(full, function(x) {sum(is.na(x))})
 
 full[1:10,]
 
+
+```
+
+"Cabin" has the most missings, "Age" also has quite a few missings. "Fare" and "Embarked" have 1 and 2 missings. I will try to impute missings for "Age" after replacing "Fare" with the median and "Embarked" with the mode. I will remove "Cabin" due to the significant number of missings. I will also remove "Ticket" because I don't expect a relationship with survivorship. 
+
+```{r}
+
 ##Removing missings
-
-
-sapply(full, function(x) {sum(is.na(x))})
-
-full[1:10,]
-
-
-##Removing missings
-sapply(full, function(x) {sum(is.na(x))})
 
 fmedian <- median(full$Fare, na.rm = TRUE)
 full[is.na(full$Fare), "Fare"] <- fmedian
@@ -99,7 +91,10 @@ full <- select(full, -Cabin, -Ticket)
 ```
 
 
-## Variable constrution  
+
+## Variable construction  
+
+I will start by imputing "Age" and then creating a categorical variable for age: child vs. adult. There are a lot of zeros in "Parch" but maybe I can combine it with "SibSP" to create a categorical variable for total family size, which can be more meaningful. For "Fare", I'm going to divide observations equally into four classes, based on Q1, Q2 (median) and Q3. I will create a categorical variable based on "Names" dividing them into those that are prefaced wtih "Miss", "Mrs", "Mr" and "other". This could provide insights on variation within genders.
 
 
 ```{r}
@@ -115,7 +110,7 @@ sapply(full, function(x) {sum(is.na(x))})
 full$agegrp[full$Age < 18] <- "Child"
 full$agegrp[full$Age >= 18] <- "Adult"
 
-# There are a lot of zeros in Parch but maybe ocombined with SibSP 
+# There are a lot of zeros in Parch but maybe combined with SibSP it's better
 # let's look at the distribution
 
 full$familysize <- full$SibSp + full$Parch + 1
@@ -132,7 +127,7 @@ count(full, 'faregrp')
 ## Let's do something about names
 head(full$Name)
 
-full$titles <- gsub("^.*, (.*?)\\..*$", "\\1", full$Name)
+full$titles <- gsub("^.*, (.*?)\\..*$", "\\1", full$Name)  ##This code was found online 
 table(full$Sex, full$titles)
 
 full$titles[full$titles %in% c("Mlle", "Ms")] <- "Miss" 
@@ -149,9 +144,10 @@ test <- full[full$set == "test", ]
 
 ## Explore relationships
 
+I will now look at variables descriptively. 
 
 ```{r}
-## Looking at relationships
+## Looking at relationships between variables and Survival
 
 ##Tables
 table(train[,c('Survived', 'Pclass')])
@@ -167,9 +163,19 @@ bplot.xy(full$Survived, full$Pclass)
 
 bplot.xy(full$Survived, full$Fare)
 
+bplot.xy(full$Survived, full$Fare)
+
+bplot.xy(full$Survived, full$familysize)
+
+```
+
+Family size, class and fare appear important. 
 
 ## GGplot
 
+I will use GGplot to visualize patterns with more detail. 
+
+```{r}
 
 ggplot(full[!is.na(full$Survived),], aes(x = Survived, fill = Survived)) +
   geom_bar(stat='count') +
@@ -185,40 +191,48 @@ ggplot(train, aes(x = Sex, fill = factor(Survived))) +
 ggplot(train, aes(x = Pclass, fill = factor(Survived))) + 
   geom_bar(stat = 'count', position = "dodge") + 
   labs(x = "Pclass", fill = "Survived", 
-       title = "Survivalship by Class") +
+       title = "Survivorship by Class") +
   theme(legend.position = c(0.9, 0.8), panel.background = NULL)
 
 ggplot(train, aes(x = SibSp, fill = factor(Survived))) + 
   geom_bar(stat = 'count', position = "dodge") + 
   labs(x = "SibSp", fill = "Survived", 
-       title = "Survivalship by Siblings") +
+       title = "Survivorship by Siblings") +
+  theme(legend.position = c(0.9, 0.8), panel.background = NULL)
+
+ggplot(train, aes(x = familysize, fill = factor(Survived))) + 
+  geom_bar(stat = 'count', position = "dodge") + 
+  labs(x = "family size", fill = "Survived", 
+       title = "Survivorship by family size") +
   theme(legend.position = c(0.9, 0.8), panel.background = NULL)
 
 ggplot(train, aes(x = agegrp, fill = factor(Survived))) + 
   geom_bar(stat = 'count', position = "dodge") + 
   labs(x = "Agegroup", fill = "Survived", 
-       title = "Survivalship by Age") +
+       title = "Survivorship by Age") +
   theme(legend.position = c(0.9, 0.8), panel.background = NULL)
 
 ggplot(train, aes(x = titles, fill = factor(Survived))) + 
   geom_bar(stat = 'count', position = "dodge") + 
   labs(x = "titles", fill = "Survived", 
-       title = "Survivalship by titles") +
+       title = "Survivorship by titles") +
   theme(legend.position = c(0.9, 0.8), panel.background = NULL)
 
 ggplot(train, aes(x = faregrp, fill = factor(Survived))) + 
   geom_bar(stat = 'count', position = "dodge") + 
   labs(x = "faregrp", fill = "Survived", 
-       title = "Survivalship by faregrp") +
+       title = "Survivorship by faregrp") +
   theme(legend.position = c(0.9, 0.8), panel.background = NULL)
 
 
 ```
 
+This exploration shows that women were more likely to survive than men, first class was more likely to survival than lower classes, individuals traveling alone were more likely to not survive, adults were less likely to survive than children, men who were masters were more likely to surive than not, every fare group is less likely to surive except those who paid high fares. 
 
 
 ## Train logistic model
 
+I will now train the data, searching for the best fitting model. 
 
 ```{r}
 ##Class is clearly important... Sex is importnat.
@@ -244,15 +258,20 @@ logmodel5 <- glm(Survived ~ Age + Pclass + Sex + SibSp  + titles, family = "bino
 
 summary(logmodel5)
 
+logmodel6 <- glm(Survived ~ Age + Pclass + Sex + familysize  + titles, family = "binomial", data = train)
 
-## Model 5 has lowest AIC, 
+summary(logmodel6)
 
 
-train$fitted <- round(fitted(logmodel5, train), digit=0)
 
-cbind(train, fitted = fitted(logmodel5))
+## Model 6 has lowest AIC.
 
-train$fitted <- round(fitted(logmodel5), digit=0)
+
+train$fitted <- round(fitted(logmodel6, train), digit=0)
+
+cbind(train, fitted = fitted(logmodel6))
+
+train$fitted <- round(fitted(logmodel6), digit=0)
 
 train$match <- as.numeric(train$Survived == train$fitted)
 
@@ -262,13 +281,15 @@ count(train, 'match')
 
 ```
 
+I will apply model 6 to test data. 
+
 
 ## Apply model to test data
 
 
 ```{r}
 
-predictTest = predict(logmodel5, type = "response", newdata = test)
+predictTest = predict(logmodel6, type = "response", newdata = test)
 
 # no preference over error t = 0.5
 test$Survived = as.numeric(predictTest >= 0.5)
