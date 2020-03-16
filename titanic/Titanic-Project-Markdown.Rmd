@@ -43,7 +43,10 @@ library(caret)
 library(e1071)
 library(dplyr)
 library(plyr)
-library(tinytex)
+library(rpart.plot)
+library(RColorBrewer)
+library(rattle)
+library(randomForest)
 
 ```
 
@@ -262,6 +265,9 @@ logmodel6 <- glm(Survived ~ Age + Pclass + Sex + familysize  + titles, family = 
 
 summary(logmodel6)
 
+logmodel7 <- glm(Survived ~ Age + Pclass + Sex + familysize  + titles + Embarked, family = "binomial", data = train)
+
+summary(logmodel7)
 
 
 ## Model 6 has lowest AIC.
@@ -302,3 +308,48 @@ write.csv(file = "TitanicPred_Logistic", x = predictions)
 
 
 ```
+
+## Exploring decision trees
+
+
+```{r}
+
+
+surv_model <- rpart(formula = Survived ~ Age + Pclass + Sex + familysize  + titles + Embarked, data = train, method = "class")
+
+# Print the results
+print(surv_model)
+
+head(train)
+
+prediction <- predict(object = surv_model, newdata = train, type = "class")  
+
+train$prediction <- prediction
+
+train$match2 <- as.numeric(train$Survived == train$prediction)
+
+count(train, 'match2')
+
+## Second way to get same value
+confusionMatrix(table(prediction, train$Survived))
+
+fancyRpartPlot(surv_model)
+
+##84 percent accuracy
+
+
+## Making predictions
+
+prediction <- predict(object = surv_model, newdata = test, type = "class")  
+
+test$prediction <- prediction
+
+head(test)
+
+predictions2 = data.frame(test[c("PassengerId","prediction")])
+write.csv(file = "TitanicPred_DecisionTree", x = predictions2)
+
+
+```
+
+

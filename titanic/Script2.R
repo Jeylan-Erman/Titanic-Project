@@ -5,6 +5,8 @@ setwd(dir)
 test <- read.csv("test.csv", header=T, as.is=F, na.strings=c("","NA"))
 train <- read.csv("train.csv", header=T, as.is=F, na.strings=c("","NA")) 
 
+install.packages("rpart.plot")	
+
 library(corrplot)
 library(ggplot2)
 library(scales)
@@ -15,7 +17,10 @@ library(caret)
 library(e1071)
 library(dplyr)
 library(plyr)
-
+library(rpart.plot)
+library(RColorBrewer)
+library(rattle)
+library(randomForest)
 
 train$set <- "train"
 test$set  <- "test"
@@ -208,6 +213,9 @@ logmodel6 <- glm(Survived ~ Age + Pclass + Sex + familysize  + titles, family = 
 
 summary(logmodel6)
 
+logmodel7 <- glm(Survived ~ Age + Pclass + Sex + familysize  + titles, family = "binomial", data = train)
+
+summary(logmodel7)
 
 ## Model 6 has lowest AIC, 
 
@@ -222,7 +230,7 @@ train$match <- as.numeric(train$Survived == train$fitted)
 
 count(train, 'match')
 
-## 83 percent match rate
+## 83 percent accuracy
 
 
 predictTest = predict(logmodel6, type = "response", newdata = test)
@@ -235,4 +243,82 @@ head(test)
 
 predictions = data.frame(test[c("PassengerId","Survived")])
 write.csv(file = "TitanicPred_Logistic", x = predictions)
+
+
+## Prediction with Decision Trees
+
+
+surv_model <- rpart(formula = Survived ~ Age + Pclass + Sex + familysize  + titles + Embarked, data = train, method = "class")
+
+# Print the results
+print(surv_model)
+
+head(train)
+
+prediction <- predict(object = surv_model, newdata = train, type = "class")  
+
+train$prediction <- prediction
+
+train$match2 <- as.numeric(train$Survived == train$prediction)
+
+count(train, 'match2')
+
+## Second way to get same value
+confusionMatrix(table(prediction, train$Survived))
+
+fancyRpartPlot(surv_model)
+
+##84 percent accuracy
+
+
+## Making predictions
+
+prediction <- predict(object = surv_model, newdata = test, type = "class")  
+
+test$prediction <- prediction
+
+head(test)
+
+predictions2 = data.frame(test[c("PassengerId","prediction")])
+write.csv(file = "TitanicPred_DecisionTree", x = predictions2)
+
+
+
+## Predictions with Random Forest
+
+head(full)
+
+full$Pclass <- as.factor(full$Pclass)
+full$Sex <- as.factor(full$Sex)
+full$titles <- as.factor(full$titles)
+
+
+train <- full[full$set == "train", ]
+test <- full[full$set == "test", ]
+
+set.seed(111)
+
+forestmodel <- randomForest(as.factor(Survived) ~ Age + Pclass + Sex + familysize  + titles + Fare, data=train, importance=T, ntree=1000, metric = "Accuracy")
+
+forestmodel
+
+
+# 84 percent accuracy 
+
+plot(forestmodel, ylim=c(0,0.36))
+legend('topright', colnames(forestmodel$err.rate), col=1:3, fill=1:3)
+
+
+my_prediction <- predict(forestmodel, test)
+
+test$my_prediction <- my_prediction
+
+predictions3 = data.frame(test[c("PassengerId","my_prediction")])
+write.csv(file = "TitanicPred_RandomForest", x = predictions3)
+
+varImpPlot(forestmodel)
+
+head(test)
+
+
 
