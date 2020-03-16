@@ -349,7 +349,7 @@ test$prediction <- prediction
 head(test)
 
 predictions2 = data.frame(test[c("PassengerId","prediction")])
-write.csv(file = "TitanicPred_DecisionTree", x = predictions2)
+write.csv(file = "TitanicPred_ClassTree", x = predictions2)
 
 
 ```
