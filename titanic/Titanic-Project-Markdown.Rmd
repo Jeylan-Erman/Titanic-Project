@@ -336,9 +336,11 @@ confusionMatrix(table(prediction, train$Survived))
 fancyRpartPlot(surv_model)
 
 ##84 percent accuracy
-
+```
 
 ## Making predictions
+
+```{r}
 
 prediction <- predict(object = surv_model, newdata = test, type = "class")  
 
