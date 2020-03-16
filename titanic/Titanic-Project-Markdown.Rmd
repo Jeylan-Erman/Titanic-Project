@@ -309,7 +309,7 @@ write.csv(file = "TitanicPred_Logistic", x = predictions)
 
 ```
 
-## Exploring decision trees
+## Exploring classification trees
 
 
 ```{r}

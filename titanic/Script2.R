@@ -245,7 +245,7 @@ predictions = data.frame(test[c("PassengerId","Survived")])
 write.csv(file = "TitanicPred_Logistic", x = predictions)
 
 
-## Prediction with Decision Trees
+## Prediction with classification trees
 
 
 surv_model <- rpart(formula = Survived ~ Age + Pclass + Sex + familysize  + titles + Embarked, data = train, method = "class")
